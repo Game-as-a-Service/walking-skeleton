@@ -1,0 +1,92 @@
+name: master
+
+on: [ push, workflow_dispatch ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # services:
+    #   mysql:
+    #     image: mysql:8.0.26
+    #     env:
+    #       MYSQL_ROOT_PASSWORD: secret
+    #       MYSQL_DATABASE: splendor
+    #     ports:
+    #       - 3306:3306
+    #     options: --health-cmd "mysqladmin ping" --health-interval 10s --health-timeout 5s --health-retries 3
+
+    #   redis:
+    #     image: redis:6
+    #     ports:
+    #       - 6379:6379
+    #     options: >-
+    #       --health-cmd "redis-cli ping"
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
+    #     command:
+
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11.3'
+
+      - name: Docker Compose Up
+        run: docker-compose up -d
+
+      - name: Install Poetry
+        run: curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install dependencies
+        run: poetry install
+              
+      - name: Set config
+        run: cp config/sample_api_config.py config/api_config.py
+      
+      - name: Set alembic.ini
+        run: |
+          cp alembic.ini_sample alembic.ini
+          sed -i "s|mysql+pymysql://root:secret@127.0.0.1:3306/ReplaceME|mysql+pymysql://root:secret@127.0.0.1:3306/${{ secrets.SQLAlCHEMY_URL }}|g" alembic.ini
+
+      - name: Alembic upgrade heads
+        run: poetry run alembic -c alembic.ini upgrade heads
+      - name: Poetry run pytest
+        run: poetry run pytest
+
+
+      - name: Modify api_config.py
+        run: |
+          sed -i 's|SESSION_REDIS_HOST = "localhost"|SESSION_REDIS_HOST = "host.docker.internal"|' config/api_config.py
+      
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Convert repo name to lowercase
+        id: to_lower
+        run: |
+          echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
+          echo "REPO_NAME=$(echo ${{ github.repository }} | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
+
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1 
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/splendor:latest
+          
+

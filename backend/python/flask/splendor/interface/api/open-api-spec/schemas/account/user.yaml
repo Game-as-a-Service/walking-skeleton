@@ -1,0 +1,99 @@
+get:
+  summary: 取得會員資料
+  description: 取得會員資料
+  tags:
+    - Account
+  parameters:
+    - in: query
+      name: userId
+      schema:
+        type: string
+      required: true
+      description: user ID of the user to get
+
+  responses:
+    200:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  userId:
+                    type: str
+                    description: user id
+                  name:
+                    type: str
+                    description: user name
+          example:
+            {
+              "data": {
+                "userId": "test",
+                "name": "Amy",
+              },
+              "message": "Success"
+            }
+
+
+post:
+  summary: 新增會員資料
+  description: 新增會員資料
+  tags:
+    - Account
+  requestBody:
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            data:
+              type: object
+              properties:
+                userId:
+                  type: str
+                  description: user id
+                name:
+                  type: str
+                  description: user name
+        example:
+          {
+            "data": {
+              "userId": "test",
+              "name": "Amy"
+              }
+          }
+
+  responses:
+    200:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  userId:
+                    type: str
+                    description: user id
+                  name:
+                    type: str
+                    description: user name
+          example:
+            {
+              "data": {
+                "userId": "test",
+                "name": "Amy",
+              },
+              "message": "Success"
+            }
